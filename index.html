@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Leaflet クリック座標 JSON出力</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 400px;
+      width: 100%;
+    }
+    button {
+      margin-top: 8px;
+      padding: 8px 12px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Leaflet クリック座標 JSONコンソール出力</h1>
+  <div id="map"></div>
+  <button id="saveBtn" disabled>保存</button>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([34.6937, 135.5023], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const saveBtn = document.getElementById('saveBtn');
+    let lastClickedLatLng = null;
+    let popup = null;
+
+    map.on('click', function(e) {
+      lastClickedLatLng = e.latlng;
+      const latlngStr = `緯度: ${e.latlng.lat.toFixed(6)}, 経度: ${e.latlng.lng.toFixed(6)}`;
+
+      if (popup) {
+        popup.remove();
+      }
+      popup = L.popup()
+        .setLatLng(e.latlng)
+        .setContent(latlngStr)
+        .openOn(map);
+
+      popup.on('close', () => {
+        saveBtn.disabled = true;
+        lastClickedLatLng = null;
+      });
+
+      saveBtn.disabled = false;
+    });
+
+    saveBtn.addEventListener('click', () => {
+      if (lastClickedLatLng) {
+        const jsonData = {
+          lat: parseFloat(lastClickedLatLng.lat.toFixed(6)),
+          lng: parseFloat(lastClickedLatLng.lng.toFixed(6))
+        };
+        console.log(JSON.stringify(jsonData));
+        fetch('https://script.google.com/macros/s/AKfycbyex-uV5Vf_Xt5HGesMFxjPzFQPgiEd6CR_xMR0ohECnjUkGQOIGHi7Z2KiqwDqsVX8/exec', {
+          method: 'POST',
+          body: JSON.stringify(jsonData),
+          headers: { 'Content-Type': 'application/json' }
+        })
+        .then(res => res.json())
+        .then(data => alert('保存完了'))
+        .catch(err => alert('保存失敗: ' + err));
+        // alert('JSONをコンソールに出力しました:\n' + JSON.stringify(jsonData));
+      }
+    });
+  </script>
+</body>
+</html>
