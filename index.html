@@ -21,18 +21,24 @@
   <h1>Leaflet</h1>
   <div id="map"></div>
   <button id="saveBtn" disabled>保存</button>
+  <button id="loadBtn">読み込み</button>
+  <div id="table-container"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
+    const GAS_API = 'https://script.google.com/macros/s/AKfycbyQ-1EUcHFVEGoO8uDAK9rh-SlYlDsNJTpQwzX-zVLf154PBIRnudCOk8JWBB5imwot/exec'
+
+    const saveBtn = document.getElementById('saveBtn');
+    let lastClickedLatLng = null;
+    let popup = null;
+    
+    // 地図表示
     const map = L.map('map').setView([34.6937, 135.5023], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    const saveBtn = document.getElementById('saveBtn');
-    let lastClickedLatLng = null;
-    let popup = null;
-
+    // クリック時にポップアップ表示
     map.on('click', function(e) {
       lastClickedLatLng = e.latlng;
       const latlngStr = `緯度: ${e.latlng.lat.toFixed(6)}, 経度: ${e.latlng.lng.toFixed(6)}`;
@@ -53,6 +59,7 @@
       saveBtn.disabled = false;
     });
 
+    // 保存ボタン押下時でスプレットシートにデータを保存
     saveBtn.addEventListener('click', () => {
       if (lastClickedLatLng) {
         const jsonData = {
@@ -60,7 +67,7 @@
           lng: parseFloat(lastClickedLatLng.lng.toFixed(6))
         };
         console.log(JSON.stringify(jsonData));
-        fetch('https://script.google.com/macros/s/AKfycbzqBqko5JHqCEU1Sg7utAH2iQk2CXd4uAsvxFDo3swqbXlzzCEAR7UdjQ1UUHzVvU36/exec', {
+        fetch(GAS_API, {
           method: 'POST',
           headers: {
             'Content-Type': 'text/plain;charset=UTF-8'
@@ -71,6 +78,38 @@
         .then(data => alert('保存完了'))
         .catch(err => alert('保存失敗: ' + err));
       }
+    });
+
+    // スプレッドシートのデータを取得してテーブル表示
+    document.getElementById('loadBtn').addEventListener('click', () => {
+      fetch(GAS_API)
+        .then(res => res.json())
+        .then(data => {
+          const tableContainer = document.getElementById('table-container');
+          let html = '<table border="1" cellpadding="5"><thead><tr>';
+
+          // ヘッダー作成 assuming first row contains headers
+          data[0].forEach(header => {
+            html += `<th>${header}</th>`;
+          });
+          html += '</tr></thead><tbody>';
+
+          // データ行を追加（ヘッダー行は除く）
+          for(let i = 1; i < data.length; i++) {
+            html += '<tr>';
+            data[i].forEach(cell => {
+              html += `<td>${cell}</td>`;
+            });
+            html += '</tr>';
+          }
+
+          html += '</tbody></table>';
+          tableContainer.innerHTML = html;
+          console.log("取得データ:", data);
+        })
+        .catch(err => {
+          console.error("API取得エラー:", err);
+        });
     });
   </script>
 </body>
