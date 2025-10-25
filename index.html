@@ -15,6 +15,9 @@
       width: 160px;
       height: 80px;
     }
+    #table-container {
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -31,7 +34,7 @@
     const saveBtn = document.getElementById('saveBtn');
     let lastClickedLatLng = null;
     let popup = null;
-    
+
     // 地図表示
     const map = L.map('map').setView([34.6937, 135.5023], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -42,6 +45,7 @@
     map.on('click', function(e) {
       lastClickedLatLng = e.latlng;
       const latlngStr = `緯度: ${e.latlng.lat.toFixed(6)}, 経度: ${e.latlng.lng.toFixed(6)}`;
+      console.log(`緯度: ${e.latlng.lat.toFixed(6)}, 経度: ${e.latlng.lng.toFixed(6)}`)
 
       if (popup) {
         popup.remove();
@@ -66,7 +70,7 @@
           lat: parseFloat(lastClickedLatLng.lat.toFixed(6)),
           lng: parseFloat(lastClickedLatLng.lng.toFixed(6))
         };
-        console.log(JSON.stringify(jsonData));
+        console.log("GAS送信データ:", JSON.stringify(jsonData));
         fetch(GAS_API, {
           method: 'POST',
           headers: {
@@ -105,7 +109,7 @@
 
           html += '</tbody></table>';
           tableContainer.innerHTML = html;
-          console.log("取得データ:", data);
+          console.log("GAS取得データ:", data);
         })
         .catch(err => {
           console.error("API取得エラー:", err);
