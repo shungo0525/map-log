@@ -1,120 +1,127 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <title>Leaflet</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <style>
-    #map {
-      height: 400px;
-      width: 100%;
-    }
-    button {
-      margin-top: 8px;
-      font-size: 24px;
-      width: 160px;
-      height: 80px;
-    }
-    #table-container {
-      margin-top: 20px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Leaflet</h1>
-  <div id="map"></div>
-  <button id="saveBtn" disabled>保存</button>
-  <button id="loadBtn">読み込み</button>
-  <div id="table-container"></div>
-
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-    const GAS_API = 'https://script.google.com/macros/s/AKfycbyQ-1EUcHFVEGoO8uDAK9rh-SlYlDsNJTpQwzX-zVLf154PBIRnudCOk8JWBB5imwot/exec'
-
-    const saveBtn = document.getElementById('saveBtn');
-    let lastClickedLatLng = null;
-    let popup = null;
-
-    // 地図表示
-    const map = L.map('map').setView([34.6937, 135.5023], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-
-    // クリック時にポップアップ表示
-    map.on('click', function(e) {
-      lastClickedLatLng = e.latlng;
-      const latlngStr = `緯度: ${e.latlng.lat.toFixed(6)}, 経度: ${e.latlng.lng.toFixed(6)}`;
-      console.log(`緯度: ${e.latlng.lat.toFixed(6)}, 経度: ${e.latlng.lng.toFixed(6)}`)
-
-      if (popup) {
-        popup.remove();
+  <head>
+    <meta charset="UTF-8" />
+    <title>Leaflet</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+      #map {
+        height: 400px;
+        width: 100%;
       }
-      popup = L.popup()
-        .setLatLng(e.latlng)
-        .setContent(latlngStr)
-        .openOn(map);
+      button {
+        margin-top: 8px;
+        font-size: 24px;
+        width: 160px;
+        height: 80px;
+      }
+      #table-container {
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Leaflet</h1>
+    <div id="map"></div>
+    <button id="saveBtn" disabled>保存</button>
+    <button id="loadBtn">読み込み</button>
+    <h2>GASデータ</h2>
+    <div id="table-container"></div>
 
-      popup.on('close', () => {
-        saveBtn.disabled = true;
-        lastClickedLatLng = null;
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+    const GAS_API = 'https://script.google.com/macros/s/AKfycbyQ-1EUcHFVEGoO8uDAK9rh-SlYlDsNJTpQwzX-zVLf154PBIRnudCOk8JWBB5imwot/exec';
+
+      const saveBtn = document.getElementById('saveBtn');
+      let lastClickedLatLng = null;
+      let popup = null;
+
+      // Leaflet地図初期化
+      const map = L.map('map').setView([34.6937, 135.5023], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      // テーブル描画関数
+      function renderTable(data) {
+        const tableContainer = document.getElementById('table-container');
+        let html = '<table border="1" cellpadding="5"><thead><tr>';
+
+        // ヘッダー
+        data[0].forEach(header => {
+          html += `<th>${header}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        // データ行
+        for (let i = 1; i < data.length; i++) {
+          html += '<tr>';
+          data[i].forEach(cell => {
+            html += `<td>${cell}</td>`;
+          });
+          html += '</tr>';
+        }
+
+        html += '</tbody></table>';
+        tableContainer.innerHTML = html;
+      }
+
+      // GASからデータ取得
+      async function fetchAndDisplayTable() {
+        try {
+          const res = await fetch(GAS_API);
+          const data = await res.json();
+          console.log("GAS取得データ:", data);
+          renderTable(data);
+        } catch (err) {
+          console.error("API取得エラー:", err);
+        }
+      }
+
+      // 初期表示時に自動で読み込み
+      window.onload = fetchAndDisplayTable;
+
+      // クリック時の位置情報ポップアップ表示
+      map.on('click', function (e) {
+        lastClickedLatLng = e.latlng;
+        const latlngStr = `緯度: ${e.latlng.lat.toFixed(6)}, 経度: ${e.latlng.lng.toFixed(6)}`;
+        console.log(latlngStr);
+
+        if (popup) popup.remove();
+        popup = L.popup().setLatLng(e.latlng).setContent(latlngStr).openOn(map);
+
+        popup.on('close', () => {
+          saveBtn.disabled = true;
+          lastClickedLatLng = null;
+        });
+
+        saveBtn.disabled = false;
       });
 
-      saveBtn.disabled = false;
-    });
+      // 保存処理
+      saveBtn.addEventListener('click', () => {
+        if (lastClickedLatLng) {
+          const jsonData = {
+            lat: parseFloat(lastClickedLatLng.lat.toFixed(6)),
+            lng: parseFloat(lastClickedLatLng.lng.toFixed(6))
+          };
+          console.log("GAS送信データ:", JSON.stringify(jsonData));
+          fetch(GAS_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+            body: JSON.stringify(jsonData)
+          })
+            .then(res => res.json())
+            .then(data => {
+              alert('保存完了');
+              fetchAndDisplayTable(); // 保存後再読み込み
+            })
+            .catch(err => alert('保存失敗: ' + err));
+        }
+      });
 
-    // 保存ボタン押下時でスプレットシートにデータを保存
-    saveBtn.addEventListener('click', () => {
-      if (lastClickedLatLng) {
-        const jsonData = {
-          lat: parseFloat(lastClickedLatLng.lat.toFixed(6)),
-          lng: parseFloat(lastClickedLatLng.lng.toFixed(6))
-        };
-        console.log("GAS送信データ:", JSON.stringify(jsonData));
-        fetch(GAS_API, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=UTF-8'
-          },
-          body: JSON.stringify(jsonData)
-        })
-        .then(res => res.json())
-        .then(data => alert('保存完了'))
-        .catch(err => alert('保存失敗: ' + err));
-      }
-    });
-
-    // スプレッドシートのデータを取得してテーブル表示
-    document.getElementById('loadBtn').addEventListener('click', () => {
-      fetch(GAS_API)
-        .then(res => res.json())
-        .then(data => {
-          const tableContainer = document.getElementById('table-container');
-          let html = '<table border="1" cellpadding="5"><thead><tr>';
-
-          // ヘッダー作成 assuming first row contains headers
-          data[0].forEach(header => {
-            html += `<th>${header}</th>`;
-          });
-          html += '</tr></thead><tbody>';
-
-          // データ行を追加（ヘッダー行は除く）
-          for(let i = 1; i < data.length; i++) {
-            html += '<tr>';
-            data[i].forEach(cell => {
-              html += `<td>${cell}</td>`;
-            });
-            html += '</tr>';
-          }
-
-          html += '</tbody></table>';
-          tableContainer.innerHTML = html;
-          console.log("GAS取得データ:", data);
-        })
-        .catch(err => {
-          console.error("API取得エラー:", err);
-        });
-    });
-  </script>
-</body>
+      // 読み込みボタン
+      document.getElementById('loadBtn').addEventListener('click', fetchAndDisplayTable);
+    </script>
+  </body>
 </html>
