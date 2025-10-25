@@ -1,0 +1,13 @@
+#map {
+  height: 400px;
+  width: 100%;
+}
+button {
+  margin-top: 8px;
+  font-size: 24px;
+  width: 160px;
+  height: 80px;
+}
+#table-container {
+  margin-top: 20px;
+}
