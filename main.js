@@ -62,12 +62,16 @@ function saveData() {
 // GASからデータ取得
 async function fetchAndDisplayTable() {
   try {
+    loading.style.display = "block";
     const res = await fetch(GAS_API);
     const data = await res.json();
     console.log("GAS取得データ:", data);
     renderTable(data);
   } catch (err) {
     console.error("API取得エラー:", err);
+  } finally {
+    // ローディング非表示
+    loading.style.display = "none";
   }
 }
 
